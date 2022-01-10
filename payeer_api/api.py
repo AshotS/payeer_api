@@ -99,7 +99,8 @@ class PayeerAPI:
         return self.request(action='shopOrderInfo', shopId=shop_id, orderId=order_id)
 
     def transfer(self, sum, to, cur_in='USD', cur_out='USD',
-                 comment=None, protect=None, protect_period=None, protect_code=None):
+                 comment=None, protect=None, protect_period=None, protect_code=None,
+                 return_full_response = False):
         """
         Transferring Funds
         :param sum: amount withdrawn (the amount deposited will be calculated automatically, factoring in all fees from the recipient)
@@ -110,7 +111,8 @@ class PayeerAPI:
         :param protect: activation of transaction protection, set Y to enable
         :param protect_period: protection period: 1–30 days
         :param protect_code: protection code
-        :return: True if the payment is successful
+        :param return_full_response: return full system resopnce on exit
+        :return: True if the payment is successful (full response in json if return_full_response)
         """
         validate_wallet(to)
         data = {'action': 'transfer', 'sum': sum, 'to': to, 'curIn': cur_in, 'curOut': cur_out}
@@ -120,7 +122,9 @@ class PayeerAPI:
             if protect_period: data['protectPeriod'] = protect_period
             if protect_code: data['protectCode'] = protect_code
         resp = self.request(**data)
-        if resp.get('historyId', 0) > 0:
+        if return_full_response:
+            return resp
+        elif resp.get('historyId', 0) > 0:
             return True
         else:
             return False
