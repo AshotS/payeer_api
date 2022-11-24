@@ -14,16 +14,18 @@ class PayeerAPIException(Exception):
 class PayeerAPI:
     """Payeer API Client"""
 
-    def __init__(self, account, apiId, apiPass):
+    def __init__(self, account, apiId, apiPass, timeout = None):
         """
         :param account: Your account number in the Payeer system. Example: P1000000
         :param apiId: The API user’s ID; given out when adding the API
         :param apiPass: The API user's secret key
+        :param timeout: timeout for requests
         """
         validate_wallet(account)
         self.account = account
         self.apiId = apiId
         self.apiPass = apiPass
+        self.timeout = timeout
         self.api_url = 'https://payeer.com/ajax/api/api.php'
         self.auth_data = {'account': self.account, 'apiId': self.apiId, 'apiPass': self.apiPass}
         self.auth_check()
@@ -33,7 +35,7 @@ class PayeerAPI:
         data = self.auth_data
         if kwargs:
             data.update(kwargs)
-        resp = requests.post(url=self.api_url, data=data).json()
+        resp = requests.post(url=self.api_url, data=data, timeout=self.timeout).json()
         error = resp.get('errors')
         if error:
             raise PayeerAPIException(error)
@@ -99,7 +101,8 @@ class PayeerAPI:
         return self.request(action='shopOrderInfo', shopId=shop_id, orderId=order_id)
 
     def transfer(self, sum, to, cur_in='USD', cur_out='USD',
-                 comment=None, protect=None, protect_period=None, protect_code=None):
+                 comment=None, protect=None, protect_period=None, protect_code=None,
+                 return_full_response = False):
         """
         Transferring Funds
         :param sum: amount withdrawn (the amount deposited will be calculated automatically, factoring in all fees from the recipient)
@@ -110,7 +113,8 @@ class PayeerAPI:
         :param protect: activation of transaction protection, set Y to enable
         :param protect_period: protection period: 1–30 days
         :param protect_code: protection code
-        :return: True if the payment is successful
+        :param return_full_response: return full system resopnce on exit
+        :return: True if the payment is successful (full response in json if return_full_response)
         """
         validate_wallet(to)
         data = {'action': 'transfer', 'sum': sum, 'to': to, 'curIn': cur_in, 'curOut': cur_out}
@@ -120,7 +124,9 @@ class PayeerAPI:
             if protect_period: data['protectPeriod'] = protect_period
             if protect_code: data['protectCode'] = protect_code
         resp = self.request(**data)
-        if resp.get('historyId', 0) > 0:
+        if return_full_response:
+            return resp
+        elif resp.get('historyId', 0) > 0:
             return True
         else:
             return False
