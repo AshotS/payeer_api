@@ -14,16 +14,18 @@ class PayeerAPIException(Exception):
 class PayeerAPI:
     """Payeer API Client"""
 
-    def __init__(self, account, apiId, apiPass):
+    def __init__(self, account, apiId, apiPass, timeout = None):
         """
         :param account: Your account number in the Payeer system. Example: P1000000
         :param apiId: The API user’s ID; given out when adding the API
         :param apiPass: The API user's secret key
+        :param timeout: timeout for requests
         """
         validate_wallet(account)
         self.account = account
         self.apiId = apiId
         self.apiPass = apiPass
+        self.timeout = timeout
         self.api_url = 'https://payeer.com/ajax/api/api.php'
         self.auth_data = {'account': self.account, 'apiId': self.apiId, 'apiPass': self.apiPass}
         self.auth_check()
@@ -33,7 +35,7 @@ class PayeerAPI:
         data = self.auth_data
         if kwargs:
             data.update(kwargs)
-        resp = requests.post(url=self.api_url, data=data).json()
+        resp = requests.post(url=self.api_url, data=data, timeout=self.timeout).json()
         error = resp.get('errors')
         if error:
             raise PayeerAPIException(error)
